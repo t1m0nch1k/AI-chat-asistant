@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+
+:root {
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+
+  /* Colors - Dark (Default) */
+  --bg-main: #14141e;
+  --bg-glass: rgba(20, 20, 30, 0.75);
+  --bg-surface: rgba(255, 255, 255, 0.05);
+  --bg-surface-hover: rgba(255, 255, 255, 0.1);
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --border-main: rgba(255, 255, 255, 0.08);
+  --accent: #0078d4;
+  --accent-muted: rgba(0, 120, 212, 0.3);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Colors - Light */
+  --bg-main: #f5f7fa;
+  --bg-glass: rgba(255, 255, 255, 0.75);
+  --bg-surface: rgba(0, 0, 0, 0.03);
+  --bg-surface-hover: rgba(0, 0, 0, 0.07);
+  --bg-input: rgba(0, 0, 0, 0.03);
+  --text-main: #1a1a1a;
+  --text-muted: rgba(0, 0, 0, 0.5);
+  --text-dim: rgba(0, 0, 0, 0.3);
+  --border-main: rgba(0, 0, 0, 0.1);
+  --accent: #0067b8;
+  --accent-muted: rgba(0, 103, 184, 0.2);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-main);
+  color: var(--text-main);
+  user-select: none;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbar — Windows 11 style ──────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-main);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ── Drag region ───────────────────────────────────────────────────────────── */
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Text selection ────────────────────────────────────────────────────────── */
+
+.markdown-body,
+textarea,
+input,
+p,
+code,
+pre {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ── Markdown body ─────────────────────────────────────────────────────────── */
+
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.5s ease-in-out idea-out;
+}
+
+/* ── Acrylic / Mica glass effect ───────────────────────────────────────────── */
+
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* ── Select element styling ───────────────────────────────────────────── */
+
+select {
+  color-scheme: inherit;
+}
+
+select option {
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* ── Range input ───────────────────────────────────────────────────────────── */
+
+input[type='range'] {
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-main);
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+/* ── Focus ring ────────────────────────────────────────────────────────────── */
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Tooltip ───────────────────────────────────────────────────────────────── */
+
+[title] {
+  cursor: default;
+}
+
+/* ── Code block scrollbar ──────────────────────────────────────────────────── */
+
+pre::-webkit-scrollbar {
+  height: 4px;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 2px;
+}
+
+/* ── Smooth transitions ────────────────────────────────────────────────────── */
+
+button {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* ── No text selection on buttons ─────────────────────────────────────────── */
+
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
