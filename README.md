@@ -44,8 +44,8 @@ Designed specifically for the Windows ecosystem:
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/artem/ai-chat-assistant.git
-   cd ai-chat-assistant
+   git clone https://github.com/t1m0nch1k/AI-chat-asistant.git
+   cd AI-chat-asistant
    ```
 
 2. Install dependencies:
@@ -101,6 +101,14 @@ src/
     ├── components/ # UI Building blocks (Chat, Coder, Settings)
     ├── store/      # State management (Zustand)
     └── types/      # TypeScript definitions
+resources/         # Application icons and assets
+```
+
+---
+
+## 📝 License
+Distributed under the MIT License. See `LICENSE` for more information.
+   └── types/      # TypeScript definitions
 resources/         # Application icons and assets
 ```
 
