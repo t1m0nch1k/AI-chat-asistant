@@ -4,6 +4,13 @@ A powerful, extensible Windows 11 AI Chat Assistant with advanced Agent capabili
 
 ![AI Assistant Banner](https://via.placeholder.com/800x400?text=AI+Assistant+Banner)
 
+## 📥 Download
+
+You can download the latest stable version of the AI Assistant here:
+👉 **[Download AI Assistant v2.0.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases/tag/v2.0.0)**
+
+---
+
 ## ✨ Key Features
 
 ### 🧠 Multi-LLM Integration
@@ -101,14 +108,6 @@ src/
     ├── components/ # UI Building blocks (Chat, Coder, Settings)
     ├── store/      # State management (Zustand)
     └── types/      # TypeScript definitions
-resources/         # Application icons and assets
-```
-
----
-
-## 📝 License
-Distributed under the MIT License. See `LICENSE` for more information.
-   └── types/      # TypeScript definitions
 resources/         # Application icons and assets
 ```
 
