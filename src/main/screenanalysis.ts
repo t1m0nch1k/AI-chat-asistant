@@ -19,44 +19,73 @@ const execAsync = promisify(exec)
 
 // ── Screenshot ────────────────────────────────────────────────────────────────
 
-async function takeScreenshot(region?: { x: number; y: number; width: number; height: number }): Promise<string> {
-  const outPath = join(tmpdir(), `ai-screenshot-${Date.now()}.png`)
-  const psPath = outPath.replace(/\\/g, '/')
-
-  const script = region ? `
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    $bmp = New-Object System.Drawing.Bitmap(${region.width}, ${region.height})
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen(${region.x}, ${region.y}, 0, 0, (New-Object System.Drawing.Size(${region.width}, ${region.height})))
-    $bmp.Save('${psPath}')
-    $g.Dispose(); $bmp.Dispose()
-  ` : `
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-    $bmp = New-Object System.Drawing.Bitmap($screen.Width, $screen.Height)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
-    $bmp.Save('${psPath}')
-    $g.Dispose(); $bmp.Dispose()
-  `
-
-  const scriptPath = join(tmpdir(), `ai-ss-${Date.now()}.ps1`)
-  writeFileSync(scriptPath, script, 'utf8')
+// Возвращает base64 PNG + реальные размеры захвата (в физических пикселях).
+async function takeScreenshot(region?: { x: number; y: number; width: number; height: number }): Promise<{ base64: string; width: number; height: number }> {
+  showOverlay()
   try {
-    await execAsync(
-      `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${scriptPath}"`,
-      { timeout: 15000, windowsHide: true }
-    )
-  } finally {
-    try { unlinkSync(scriptPath) } catch {}
-  }
+    const outPath = join(tmpdir(), `ai-screenshot-${Date.now()}.png`)
+    const psPath = outPath.replace(/\\/g, '/')
+    const dimPath = join(tmpdir(), `ai-ss-dim-${Date.now()}.txt`).replace(/\\/g, '/')
 
-  if (!existsSync(outPath)) throw new Error('Screenshot file was not created')
-  const base64 = readFileSync(outPath).toString('base64')
-  try { unlinkSync(outPath) } catch {}
-  return base64
+    // SetProcessDPIAware() — критично: без него на масштабе 125/150% скриншот
+    // захватывается в логических пикселях и не совпадает с координатами кликов.
+    const dpiHeader = `
+      Add-Type -AssemblyName System.Windows.Forms
+      Add-Type -AssemblyName System.Drawing
+      $sig = '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
+      $t = Add-Type -MemberDefinition $sig -Name DPI -Namespace Win32 -PassThru
+      try { $t::SetProcessDPIAware() | Out-Null } catch {}
+    `
+
+    const script = region ? `
+      ${dpiHeader}
+      $bmp = New-Object System.Drawing.Bitmap(${region.width}, ${region.height})
+      $g = [System.Drawing.Graphics]::FromImage($bmp)
+      $g.CopyFromScreen(${region.x}, ${region.y}, 0, 0, (New-Object System.Drawing.Size(${region.width}, ${region.height})))
+      $bmp.Save('${psPath}')
+      "$($bmp.Width),$($bmp.Height)" | Out-File -FilePath '${dimPath}' -Encoding ascii
+      $g.Dispose(); $bmp.Dispose()
+    ` : `
+      ${dpiHeader}
+      # Виртуальный экран — покрывает все мониторы
+      $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen
+      $bmp = New-Object System.Drawing.Bitmap($vs.Width, $vs.Height)
+      $g = [System.Drawing.Graphics]::FromImage($bmp)
+      $g.CopyFromScreen($vs.X, $vs.Y, 0, 0, (New-Object System.Drawing.Size($vs.Width, $vs.Height)))
+      $bmp.Save('${psPath}')
+      "$($bmp.Width),$($bmp.Height)" | Out-File -FilePath '${dimPath}' -Encoding ascii
+      $g.Dispose(); $bmp.Dispose()
+    `
+
+    const scriptPath = join(tmpdir(), `ai-ss-${Date.now()}.ps1`)
+    writeFileSync(scriptPath, script, 'utf8')
+    try {
+      await execAsync(
+        `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${scriptPath}"`,
+        { timeout: 15000, windowsHide: true }
+      )
+    } finally {
+      try { unlinkSync(scriptPath) } catch {}
+    }
+
+    if (!existsSync(outPath)) throw new Error('Screenshot file was not created')
+    const base64 = readFileSync(outPath).toString('base64')
+
+    // Читаем реальные размеры захвата
+    let width = region?.width ?? 0
+    let height = region?.height ?? 0
+    try {
+      const dimRaw = readFileSync(dimPath.replace(/\//g, '\\'), 'utf8').trim()
+      const [w, h] = dimRaw.split(',').map(Number)
+      if (w && h) { width = w; height = h }
+    } catch {}
+    try { unlinkSync(outPath) } catch {}
+    try { unlinkSync(dimPath.replace(/\//g, '\\')) } catch {}
+
+    return { base64, width, height }
+  } finally {
+    hideOverlay()
+  }
 }
 
 // ── Vision Providers ──────────────────────────────────────────────────────────
@@ -210,7 +239,8 @@ async function analyzeWithOllama(
     const response = await fetch(`${baseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: m, prompt, image: base64Image, stream: false }),
+      // Ollama ожидает массив images (а не одиночное поле image)
+      body: JSON.stringify({ model: m, prompt, images: [base64Image], stream: false }),
       signal: AbortSignal.timeout(120000)
     })
 
@@ -337,8 +367,8 @@ export function setupScreenAnalysisHandlers(): void {
 
   ipcMain.handle('screen:screenshot', async (_, { region }: { region?: any }) => {
     try {
-      const base64 = await takeScreenshot(region)
-      return { success: true, base64, dataUrl: `data:image/png;base64,${base64}` }
+      const { base64, width, height } = await takeScreenshot(region)
+      return { success: true, base64, width, height, dataUrl: `data:image/png;base64,${base64}` }
     } catch (err: any) {
       return { success: false, error: err.message }
     }
@@ -355,9 +385,9 @@ export function setupScreenAnalysisHandlers(): void {
     ollamaBaseUrl?: string
   }) => {
     try {
-      const base64 = await takeScreenshot(region)
+      const { base64, width, height } = await takeScreenshot(region)
       const result = await analyzeScreen(base64, prompt, provider, apiKey, model, ollamaBaseUrl)
-      return { success: true, result, base64 }
+      return { success: true, result, base64, width, height }
     } catch (err: any) {
       return { success: false, error: err.message }
     }
@@ -373,9 +403,11 @@ export function setupScreenAnalysisHandlers(): void {
     ollamaBaseUrl?: string
   }) => {
     try {
-      const base64 = await takeScreenshot()
+      const { base64, width, height } = await takeScreenshot()
 
-      const prompt = `Look at this screenshot carefully. Find the UI element: "${description}".
+      const prompt = `Look at this screenshot carefully. The screen resolution is ${width}x${height} pixels.
+Find the UI element: "${description}".
+Return coordinates as ABSOLUTE pixel values within the ${width}x${height} image (x from 0 to ${width}, y from 0 to ${height}).
 Return ONLY valid JSON, no other text:
 {"x": number, "y": number, "found": true, "description": "brief description of what you found"}
 or if not found:
@@ -387,7 +419,7 @@ or if not found:
       if (jsonMatch) {
         try {
           const parsed = JSON.parse(jsonMatch[0])
-          return { success: true, ...parsed }
+          return { success: true, width, height, ...parsed }
         } catch {}
       }
 
@@ -409,9 +441,10 @@ or if not found:
     ollamaBaseUrl?: string
   }) => {
     try {
-      const base64 = await takeScreenshot(region)
+      const { base64, width, height } = await takeScreenshot(region)
 
       const prompt = `You are a computer vision system analyzing a Windows desktop screenshot.
+The screen resolution is ${width}x${height} pixels. All coordinates MUST be absolute pixels within this image.
 Return a JSON object listing ALL visible UI elements and text.
 
 {
@@ -422,7 +455,7 @@ Return a JSON object listing ALL visible UI elements and text.
     {"text": "text content", "x": x, "y": y}
   ],
   "description": "brief 1-2 sentence summary of what is on screen",
-  "resolution": {"width": screen_width, "height": screen_height}
+  "resolution": {"width": ${width}, "height": ${height}}
 }
 
 IMPORTANT: Return ONLY valid JSON, no other text. Be thorough in listing elements.`
@@ -433,11 +466,13 @@ IMPORTANT: Return ONLY valid JSON, no other text. Be thorough in listing element
       if (jsonMatch) {
         try {
           const parsed = JSON.parse(jsonMatch[0])
-          return { success: true, analysis: parsed }
+          // Гарантируем наличие реального разрешения
+          if (!parsed.resolution) parsed.resolution = { width, height }
+          return { success: true, analysis: parsed, width, height }
         } catch {}
       }
 
-      return { success: true, analysis: { elements: [], description: result } }
+      return { success: true, analysis: { elements: [], description: result, resolution: { width, height } }, width, height }
     } catch (err: any) {
       return { success: false, error: err.message }
     }

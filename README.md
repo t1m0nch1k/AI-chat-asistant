@@ -7,7 +7,7 @@ A powerful, extensible Windows 11 AI Chat Assistant with advanced Agent capabili
 ## 📥 Download
 
 You can download the latest stable version of the AI Assistant here:
-👉 **[Download AI Assistant v2.0.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases/tag/v2.0.0)**
+👉 **[Download AI Assistant v2.1.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases/tag/v2.1.0)**
 
 ---
 
@@ -15,8 +15,9 @@ You can download the latest stable version of the AI Assistant here:
 
 ### 🧠 Multi-LLM Integration
 Connect to your favorite AI providers seamlessly. Support for:
-- **Cloud Providers:** OpenAI, Anthropic, Google Gemini, Groq, DeepSeek, OpenRouter.
+- **Cloud Providers:** OpenAI, Anthropic, Google Gemini, Groq, DeepSeek, OpenRouter, Qwen.
 - **Local LLMs:** Full integration with **Ollama** for private, offline AI.
+- **Custom Models:** Support for custom model IDs for advanced flexibility.
 
 ### 🛠️ Agent Capabilities
 More than just a chatbot. The AI Assistant can interact with your system to get things done:
@@ -26,18 +27,28 @@ More than just a chatbot. The AI Assistant can interact with your system to get 
     - File Explorer for project navigation.
 - **System Tools:** Capability to analyze screen, manage files, and execute system-level tasks.
 - **Knowledge Management:** Organize and provide context to the AI via a dedicated knowledge base.
+- **Unrestricted Mode:** Option to remove AI response constraints for power users.
+
+### 🎙️ Voice & Audio
+A fully integrated voice experience for hands-free interaction:
+- **Background Voice Assistant:** Constantly listens for custom **Wake Words** (e.g., "Assistant") to activate the AI.
+- **Windows SAPI Integration:** Use any installed system voice for Text-to-Speech (TTS).
+- **Interactive Mic Test:** Real-time audio level visualization (Discord-style) to ensure your microphone is working.
+- **Customizable Speech:** Adjust speech rate and volume for a personalized experience.
 
 ### 🖥️ Windows Integration
 Designed specifically for the Windows ecosystem:
-- **Global Hotkey:** Toggle the assistant instantly with `Alt+Shift+G`.
+- **Global Hotkey:** Toggle the assistant instantly with a customizable hotkey (Default: `Alt+Shift+G`).
 - **System Tray:** Runs quietly in the background with a tray icon for quick access.
 - **Auto-start:** Option to launch automatically with Windows.
 - **Native Performance:** Built with Electron and React for a smooth, responsive experience.
 
 ### 🎨 Modern UI/UX
 - **Sleek Interface:** Built with Tailwind CSS and Framer Motion for fluid animations.
+- **Multi-language Support:** Full localization (English, Russian) for a global user base.
 - **Markdown Support:** Rich text rendering with syntax highlighting for code.
 - **Customizable Settings:** Comprehensive configuration for providers, models, and system behavior.
+- **Application Logs:** Built-in real-time log viewer with level filtering (Info, Warn, Error) for debugging.
 
 ---
 

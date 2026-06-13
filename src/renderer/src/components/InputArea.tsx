@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Square, Paperclip, X, FileText, Volume2, VolumeX, Terminal } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useAppStore } from '../store/useAppStore'
 import { cn } from '../utils/cn'
 import { VoiceButton } from './VoiceButton'
@@ -15,14 +14,9 @@ interface InputAreaProps {
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({
-  onSend,
-  onStop,
-  isTyping,
-  lastAssistantMessage,
-  showTerminal,
-  onToggleTerminal
+  onSend, onStop, isTyping, lastAssistantMessage, showTerminal, onToggleTerminal,
 }) => {
-  const { settings } = useAppStore()
+  const { settings, setCurrentPage } = useAppStore()
   const [value, setValue] = useState('')
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -30,17 +24,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
     ta.style.height = 'auto'
-    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`
+    ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
   }, [value])
 
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
+  useEffect(() => { textareaRef.current?.focus() }, [])
 
   const handleSend = useCallback(() => {
     if (!value.trim() || isTyping) return
@@ -49,30 +40,16 @@ export const InputArea: React.FC<InputAreaProps> = ({
     setAttachedFile(null)
   }, [value, isTyping, attachedFile, onSend])
 
-  // Голосовой ввод — вставляем транскрипт и сразу отправляем
-  const handleVoiceTranscript = useCallback((text: string) => {
-    onSend(text)
-  }, [onSend])
+  const handleVoiceTranscript = useCallback((text: string) => { onSend(text) }, [onSend])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
-      if (settings.sendOnEnter && !e.shiftKey) {
-        e.preventDefault()
-        handleSend()
-      } else if (!settings.sendOnEnter && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault()
-        handleSend()
-      }
+      if (settings.sendOnEnter && !e.shiftKey) { e.preventDefault(); handleSend() }
+      else if (!settings.sendOnEnter && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSend() }
     }
   }
 
-  // ── Drag & Drop ───────────────────────────────────────────────────────────
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
   const handleDragLeave = () => setIsDragging(false)
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -93,15 +70,18 @@ export const InputArea: React.FC<InputAreaProps> = ({
       const text = await file.text()
       setAttachedFile({ name: file.name, content: text })
     } catch {
-      setAttachedFile({ name: file.name, content: '[Binary file — cannot display]' })
+      setAttachedFile({ name: file.name, content: '[Binary file]' })
     }
   }
 
   const canSend = value.trim().length > 0 && !isTyping
 
+  const providerName = settings.provider.charAt(0).toUpperCase() + settings.provider.slice(1)
+  const modelDisplay = settings.model || `${providerName} Model`
+
   return (
     <div
-      className={cn('px-3 pb-3 pt-2 transition-colors', isDragging && 'bg-accent/5')}
+      className={cn('px-lg pb-lg pt-sm', isDragging && 'bg-primary/5')}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -113,156 +93,116 @@ export const InputArea: React.FC<InputAreaProps> = ({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="flex items-center gap-2 mb-2 bg-white/5 rounded-lg px-3 py-1.5 border border-white/10"
+            className="flex items-center gap-sm mb-sm bg-surface-container rounded-lg px-md py-sm border border-outline-variant/50"
           >
-            <FileText size={12} className="text-accent shrink-0" />
-            <span className="text-[11px] text-white/70 truncate flex-1">{attachedFile.name}</span>
-            <button
-              onClick={() => setAttachedFile(null)}
-              className="text-white/30 hover:text-white/70 transition-colors"
-            >
-              <X size={12} />
+            <span className="material-symbols-outlined text-[14px] text-primary-container shrink-0">attach_file</span>
+            <span className="text-body-sm text-on-surface-variant truncate flex-1">{attachedFile.name}</span>
+            <button onClick={() => setAttachedFile(null)} className="text-on-surface-variant/50 hover:text-on-surface transition-colors">
+              <span className="material-symbols-outlined text-[14px]">close</span>
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Drag overlay */}
-      {isDragging && (
-        <div className="absolute inset-0 flex items-center justify-center bg-accent/10 border-2 border-dashed border-accent/40 rounded-xl z-10 pointer-events-none">
-          <p className="text-sm text-accent font-medium">Drop file to attach</p>
-        </div>
-      )}
-
-      {/* Input container */}
-      <div
-        className={cn(
-          'relative flex items-end gap-1.5 bg-white/5 border rounded-xl px-2 py-2 transition-colors',
-          isDragging ? 'border-accent/50' : 'border-white/10 focus-within:border-white/20'
-        )}
-      >
-        {/* Attach button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          title="Attach file"
-          className="p-1.5 text-white/30 hover:text-white/70 transition-colors rounded-md hover:bg-white/5 shrink-0"
-        >
-          <Paperclip size={15} />
-        </button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={handleFileSelect}
-          accept=".txt,.md,.js,.ts,.tsx,.jsx,.py,.json,.yaml,.yml,.html,.css,.csv,.xml,.sh,.bat,.ps1"
-        />
-
-        {/* Textarea */}
+      {/* Input Container */}
+      <div className="relative flex items-end gap-sm bg-surface-container rounded-xl border border-outline-variant/30 shadow-lg transition-all duration-200">
         <textarea
           ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            settings.sendOnEnter
-              ? 'Ask anything… (Enter to send)'
-              : 'Ask anything… (Ctrl+Enter to send)'
-          }
+          placeholder="Ask Nexus..."
           disabled={isTyping}
-          className="flex-1 bg-transparent border-none outline-none text-[13px] py-1 resize-none max-h-[160px] placeholder:text-white/20 disabled:opacity-50"
+          className="w-full bg-transparent border-none focus:ring-0 text-body-base text-on-surface placeholder:text-on-surface-variant/50 resize-none py-md pl-md pr-xl min-h-[56px] max-h-[200px] disabled:opacity-50"
           rows={1}
+          style={{ fieldSizing: 'content' } as any}
         />
 
-        {/* Voice button */}
-        <div className="shrink-0 pb-0.5">
+        {/* Input Controls */}
+        <div className="absolute right-md bottom-sm flex items-center gap-xs">
           <VoiceButton
             onTranscript={handleVoiceTranscript}
             disabled={isTyping}
             autoSpeak={autoSpeak}
             lastAssistantMessage={lastAssistantMessage}
           />
+          <AnimatePresence mode="wait">
+            {isTyping ? (
+              <motion.button
+                key="stop"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                onClick={onStop}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-error hover:bg-error/20 transition-colors duration-150"
+              >
+                <span className="material-symbols-outlined text-[20px]">stop</span>
+              </motion.button>
+            ) : (
+              <motion.button
+                key="send"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                onClick={handleSend}
+                disabled={!canSend}
+                className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150',
+                  canSend ? 'text-primary hover:bg-primary/10' : 'text-on-surface-variant/30 cursor-not-allowed',
+                )}
+              >
+                <span className="material-symbols-outlined text-[20px]">send</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
-
-        {/* TTS toggle */}
-        <button
-          onClick={() => {
-            if (autoSpeak) window.api?.stopSpeak?.()
-            setAutoSpeak(!autoSpeak)
-          }}
-          title={autoSpeak ? 'Выключить озвучку' : 'Включить озвучку ответов'}
-          className={cn(
-            'p-1.5 rounded-md transition-colors shrink-0',
-            autoSpeak
-              ? 'text-accent bg-accent/15 hover:bg-accent/25'
-              : 'text-white/25 hover:text-white/60 hover:bg-white/5'
-          )}
-        >
-          {autoSpeak ? <Volume2 size={14} /> : <VolumeX size={14} />}
-        </button>
-
-        {/* Send / Stop button */}
-        <AnimatePresence mode="wait">
-          {isTyping ? (
-            <motion.button
-              key="stop"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={onStop}
-              title="Stop generation"
-              className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors shrink-0"
-            >
-              <Square size={15} />
-            </motion.button>
-          ) : (
-            <motion.button
-              key="send"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={handleSend}
-              disabled={!canSend}
-              title="Send message"
-              className={cn(
-                'p-1.5 rounded-lg transition-all shrink-0',
-                canSend
-                  ? 'bg-accent hover:bg-accent/80 text-white shadow-lg shadow-accent/20'
-                  : 'text-white/20 cursor-not-allowed'
-              )}
-            >
-              <Send size={15} />
-            </motion.button>
-          )}
-        </AnimatePresence>
       </div>
 
-      {/* Status hints */}
-      <div className="flex justify-between items-center mt-1.5 px-1">
-        <div className="flex items-center gap-2">
-          <p className="text-[10px] text-white/15">
-            {settings.agentEnabled ? '🤖 Agent mode' : ''}
-          </p>
-          {/* Terminal toggle button */}
+      {/* Bottom Toolbar */}
+      <div className="flex items-center justify-between mt-sm px-xs">
+        <div className="flex items-center gap-sm">
+          <button
+            onClick={() => setCurrentPage('settings')}
+            className="flex items-center gap-xs text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors px-xs py-[2px] rounded hover:bg-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-[14px]">psychology</span>
+            <span className="text-on-surface-variant group-hover:text-on-surface">{modelDisplay.length > 20 ? modelDisplay.slice(0, 20) + '...' : modelDisplay}</span>
+            <span className="material-symbols-outlined text-[14px]">expand_more</span>
+          </button>
+          <div className="w-px h-3 bg-outline-variant/50" />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-xs text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors px-xs py-[2px] rounded hover:bg-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-[14px]">attach_file</span>
+            <span>Attach</span>
+          </button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept=".txt,.md,.js,.ts,.tsx,.jsx,.py,.json,.yaml,.yml,.html,.css,.csv,.xml,.sh,.bat,.ps1" />
+          {/* TTS toggle */}
+          <button
+            onClick={() => { if (autoSpeak) window.api?.stopSpeak?.(); setAutoSpeak(!autoSpeak) }}
+            className={cn(
+              'flex items-center gap-xs text-body-sm transition-colors px-xs py-[2px] rounded',
+              autoSpeak ? 'text-primary hover:bg-primary/10' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high',
+            )}
+          >
+            <span className="material-symbols-outlined text-[14px]">{autoSpeak ? 'volume_up' : 'volume_off'}</span>
+          </button>
           {onToggleTerminal && (
             <button
               onClick={onToggleTerminal}
-              title={showTerminal ? 'Hide terminal' : 'Open terminal'}
               className={cn(
-                'flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors',
-                showTerminal
-                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                  : 'text-white/25 hover:text-white/50 hover:bg-white/5'
+                'flex items-center gap-xs text-body-sm transition-colors px-xs py-[2px] rounded',
+                showTerminal ? 'text-secondary hover:bg-secondary/10' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high',
               )}
             >
-              <Terminal size={10} />
-              <span>Terminal</span>
+              <span className="material-symbols-outlined text-[14px]">terminal</span>
             </button>
           )}
         </div>
-        {autoSpeak && (
-          <p className="text-[10px] text-accent/50">🔊 Auto-speak on</p>
-        )}
+        <div className="font-body-sm text-body-sm text-on-surface-variant/50">
+          Press <kbd className="font-code-sm px-1 rounded bg-surface-container-high border border-outline-variant/30 text-on-surface-variant">Enter</kbd> to send
+        </div>
       </div>
     </div>
   )

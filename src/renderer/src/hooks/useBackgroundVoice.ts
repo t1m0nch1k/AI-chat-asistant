@@ -23,14 +23,14 @@ export function useBackgroundVoice({ onCommand }: UseBackgroundVoiceOptions) {
     const wakeWords = settings.wakeWords?.length > 0
       ? settings.wakeWords
       : ['ассистент', 'assistant']
-    const r = await window.api.startBackgroundVoice(wakeWords)
+    const r = await window.api.startBackgroundVoice(wakeWords, settings.microphoneName)
     if (r.success) {
       setStatus('waiting')
     } else {
       setStatus('error')
       console.error('[Voice] Failed to start:', r.error)
     }
-  }, [settings.wakeWords])
+  }, [settings.wakeWords, settings.microphoneName])
 
   const stop = useCallback(async () => {
     if (!window.api?.stopBackgroundVoice) return
@@ -45,6 +45,7 @@ export function useBackgroundVoice({ onCommand }: UseBackgroundVoiceOptions) {
     const unsubStatus = window.api.onSRStatus(({ status: s }) => {
       if (s === 'ready' || s === 'waiting') setStatus('waiting')
       else if (s === 'listening') setStatus('listening')
+      else if (s === 'restarting') setStatus('waiting')
       else if (s === 'stopped') setStatus('stopped')
       else if (s === 'error') setStatus('error')
     })

@@ -9,6 +9,7 @@ import { ipcMain, shell } from 'electron'
 import { exec, spawn, ChildProcess } from 'child_process'
 import { promisify } from 'util'
 import { writeFileSync, unlinkSync, existsSync } from 'fs'
+import { createHash } from 'crypto'
 import { join } from 'path'
 import { tmpdir, homedir } from 'os'
 
@@ -35,6 +36,12 @@ class InputServer {
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int idx);
+
+    // DPI awareness — критично для корректных координат при масштабе 125/150%
+    [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll")] static extern IntPtr SetProcessDpiAwarenessContext(IntPtr ctx);
+    static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
 
     const uint MOUSEEVENTF_MOVE        = 0x0001;
     const uint MOUSEEVENTF_LEFTDOWN    = 0x0002;
@@ -45,6 +52,12 @@ class InputServer {
     const uint MOUSEEVENTF_MIDDLEUP    = 0x0040;
     const uint MOUSEEVENTF_WHEEL       = 0x0800;
     const uint MOUSEEVENTF_ABSOLUTE    = 0x8000;
+
+    // Метрики виртуального рабочего стола (все мониторы)
+    const int SM_XVIRTUALSCREEN  = 76;
+    const int SM_YVIRTUALSCREEN  = 77;
+    const int SM_CXVIRTUALSCREEN = 78;
+    const int SM_CYVIRTUALSCREEN = 79;
 
     [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
 
@@ -59,18 +72,40 @@ class InputServer {
         [FieldOffset(4)] public KEYBDINPUT ki;
     }
 
+    // Ограничиваем координаты границами виртуального экрана (защита от клика "в никуда")
+    static void ClampToVirtual(ref int x, ref int y) {
+        int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        int vw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int vh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        if (x < vx) x = vx; if (x > vx + vw - 1) x = vx + vw - 1;
+        if (y < vy) y = vy; if (y > vy + vh - 1) y = vy + vh - 1;
+    }
+
     static void MoveTo(int x, int y) {
+        ClampToVirtual(ref x, ref y);
         SetCursorPos(x, y);
     }
 
     static void MoveSmoothly(int x, int y, int steps) {
+        ClampToVirtual(ref x, ref y);
         POINT cur; GetCursorPos(out cur);
+        if (steps < 1) steps = 1;
         for (int i = 1; i <= steps; i++) {
             int nx = cur.X + (x - cur.X) * i / steps;
             int ny = cur.Y + (y - cur.Y) * i / steps;
             SetCursorPos(nx, ny);
             Thread.Sleep(8);
         }
+    }
+
+    // Размеры виртуального экрана в реальных пикселях (для синхронизации со скриншотом)
+    static string GetScreenMetrics() {
+        int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        int vw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int vh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        return vx + "," + vy + "," + vw + "," + vh;
     }
 
     static void Click(string btn, bool dbl) {
@@ -122,6 +157,10 @@ class InputServer {
     }
 
     static void Main() {
+        // Включаем per-monitor DPI awareness (v2), fallback на system-aware
+        try { SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); }
+        catch { try { SetProcessDPIAware(); } catch {} }
+
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.InputEncoding  = System.Text.Encoding.UTF8;
         Console.WriteLine("READY");
@@ -176,6 +215,10 @@ class InputServer {
                         result = GetPos();
                         break;
                     }
+                    case "metrics": {
+                        result = GetScreenMetrics();
+                        break;
+                    }
                     default:
                         result = "ERR:unknown:" + cmd;
                         break;
@@ -197,9 +240,11 @@ class InputServer {
 async function getInputProcess(): Promise<ChildProcess> {
   if (inputProcess && inputProcessReady) return inputProcess
 
-  // Пишем C# скрипт во временный файл
-  const scriptPath = join(tmpdir(), 'ai-input-server.cs')
-  const exePath = join(tmpdir(), 'ai-input-server.exe')
+  // Пишем C# скрипт во временный файл.
+  // Имя exe зависит от хэша скрипта — при изменении C# старый кеш не используется.
+  const hash = createHash('md5').update(INPUT_SCRIPT).digest('hex').slice(0, 8)
+  const scriptPath = join(tmpdir(), `ai-input-server-${hash}.cs`)
+  const exePath = join(tmpdir(), `ai-input-server-${hash}.exe`)
   writeFileSync(scriptPath, INPUT_SCRIPT, 'utf8')
 
   // Компилируем через csc (встроен в Windows)
@@ -385,6 +430,18 @@ export function setupSystemToolHandlers(): void {
       } catch (err: any) {
         return { success: false, error: err.message }
       }
+    }
+  })
+
+  // ── Метрики виртуального экрана (реальные пиксели, все мониторы) ──────────
+
+  ipcMain.handle('sys:get-screen-metrics', async () => {
+    try {
+      const result = await sendInputCmd('metrics')
+      const [x, y, width, height] = result.split(',').map(Number)
+      return { success: true, x, y, width, height }
+    } catch (err: any) {
+      return { success: false, error: err.message }
     }
   })
 

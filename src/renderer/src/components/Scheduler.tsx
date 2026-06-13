@@ -151,7 +151,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ onClose }) => {
         {(['alarm', 'timer', 'reminder', 'event'] as ScheduleType[]).map(type => (
           <button
             key={type}
-            onClick={() => setShowAdd(true) || setAddType(type)}
+            onClick={() => { setShowAdd(true); setAddType(type) }}
             className={cn(
               'flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] transition-colors',
               TYPE_COLORS[type]

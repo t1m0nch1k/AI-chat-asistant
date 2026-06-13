@@ -103,8 +103,10 @@ interface PageResponse {
 
 interface ElectronAPI {
   // App
-  quit: () => Promise<void>
+  quitApp: () => Promise<void>
   hideWindow: () => Promise<void>
+  minimizeWindow: () => Promise<void>
+  maximizeWindow: () => Promise<void>
   toggleWindow: () => Promise<void>
   setAutoStart: (enabled: boolean) => Promise<void>
   registerHotkey: (hotkey: string) => Promise<void>
@@ -114,6 +116,7 @@ interface ElectronAPI {
   getWindowMode: () => Promise<boolean>
   setWindowMode: (windowMode: boolean) => Promise<void>
   onWindowModeChanged: (cb: (windowMode: boolean) => void) => () => void
+  onQuitConfirmation: (cb: () => void) => () => void
   openPath: (filePath: string) => Promise<void>
 
   // Store
@@ -133,12 +136,13 @@ interface ElectronAPI {
   // Navigation
   onNavigate: (cb: (page: string) => void) => () => void
   onNewChat: (cb: () => void) => () => void
+  onCoderModeChange: (cb: (enabled: boolean) => void) => () => void
 
   // Screen Analysis
-  takeScreenshot: (region?: { x: number; y: number; width: number; height: number }) => Promise<{ success: boolean; base64?: string; dataUrl?: string; error?: string }>
-  analyzeScreen: (prompt: string, provider: string, apiKey: string, model?: string, region?: any, ollamaBaseUrl?: string) => Promise<{ success: boolean; result?: string; base64?: string; error?: string }>
-  findElement: (description: string, apiKey: string, provider?: string, model?: string, ollamaBaseUrl?: string) => Promise<{ success: boolean; found?: boolean; x?: number; y?: number; description?: string; error?: string }>
-  analyzeScreenStructured: (apiKey: string, provider?: string, model?: string, region?: any, ollamaBaseUrl?: string) => Promise<{ success: boolean; analysis?: any; error?: string }>
+  takeScreenshot: (region?: { x: number; y: number; width: number; height: number }) => Promise<{ success: boolean; base64?: string; dataUrl?: string; width?: number; height?: number; error?: string }>
+  analyzeScreen: (prompt: string, provider: string, apiKey: string, model?: string, region?: any, ollamaBaseUrl?: string) => Promise<{ success: boolean; result?: string; base64?: string; width?: number; height?: number; error?: string }>
+  findElement: (description: string, apiKey: string, provider?: string, model?: string, ollamaBaseUrl?: string) => Promise<{ success: boolean; found?: boolean; x?: number; y?: number; width?: number; height?: number; description?: string; error?: string }>
+  analyzeScreenStructured: (apiKey: string, provider?: string, model?: string, region?: any, ollamaBaseUrl?: string) => Promise<{ success: boolean; analysis?: any; width?: number; height?: number; error?: string }>
 
   // System Tools
   openUrl: (url: string) => Promise<{ success: boolean; url?: string; error?: string }>
@@ -158,12 +162,14 @@ interface ElectronAPI {
   closeApp: (name: string) => Promise<{ success: boolean; error?: string }>
   getDatetime: () => Promise<{ success: boolean; datetime: string; date: string; time: string; timestamp: number }>
   lockScreen: () => Promise<{ success: boolean; error?: string }>
+  getScreenMetrics: () => Promise<{ success: boolean; x?: number; y?: number; width?: number; height?: number; error?: string }>
 
   // Wake Word
-  startBackgroundVoice: (wakeWords: string[]) => Promise<{ success: boolean; error?: string }>
+  startBackgroundVoice: (wakeWords: string[], microphoneName?: string) => Promise<{ success: boolean; error?: string }>
   stopBackgroundVoice: () => Promise<{ success: boolean }>
   isVoiceListening: () => Promise<{ isListening: boolean; wakeWords: string[] }>
   updateWakeWords: (wakeWords: string[]) => Promise<{ success: boolean }>
+  getMicrophones: () => Promise<{ success: boolean; microphones?: Array<{ name: string; id: string }>; error?: string }>
   onSRStatus: (cb: (data: { status: string; error?: string }) => void) => () => void
   onWakeDetected: (cb: (data: { text: string }) => void) => () => void
   onVoiceCommand: (cb: (data: { command: string }) => void) => () => void
@@ -244,6 +250,16 @@ interface ElectronAPI {
   coderInvalidateCache: () => Promise<{ success: boolean }>
   coderGetStructure: (maxDepth?: number) => Promise<CoderStructureResult>
   coderReadMultiple: (paths: string[]) => Promise<CoderReadMultipleResult>
+  // Coder Mode v2 (Cursor-style)
+  coderGitStatus: () => Promise<{ success: boolean; status?: any; error?: string }>
+  coderGitDiff: (filePath?: string) => Promise<{ success: boolean; diff?: string; error?: string }>
+  coderGitCommit: (message: string) => Promise<{ success: boolean; hash?: string; error?: string }>
+  coderApplyDiff: (filePath: string, diff: string) => Promise<{ success: boolean; path?: string; error?: string }>
+  coderGetSymbols: (filePath: string) => Promise<{ success: boolean; symbols?: Array<{ name: string; kind: string; line: number; column: number; signature?: string }>; error?: string }>
+  coderSearchCodebase: (query: string) => Promise<{ success: boolean; results?: Array<{ filePath: string; relativePath: string; line: number; text: string }>; error?: string }>
+  // Agent Orchestrator
+  agentRunLoop: (data: { chatId: string; provider: string; settings: any; messages: any[]; allowedPaths: string[] }) => Promise<{ success: boolean; error?: string }>
+  agentAbort: () => Promise<{ success: boolean }>
 }
 
 declare global {

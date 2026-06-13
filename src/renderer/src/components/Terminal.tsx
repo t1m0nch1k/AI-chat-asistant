@@ -26,7 +26,7 @@ export const Terminal: React.FC<TerminalProps> = ({ onClose, className }) => {
   ])
   const [input, setValue] = useState('')
   const [shell, setShell] = useState<'powershell' | 'cmd'>('powershell')
-  const [cwd, setCwd] = useState(window.api?.getUserInfo ? '' : 'C:\\Users')
+  const [cwd, setCwd] = useState('C:\\Users')
   const [isRunning, setIsRunning] = useState(false)
   const [history, setHistory] = useState<string[]>([])
   const [historyIdx, setHistoryIdx] = useState(-1)

@@ -77,6 +77,11 @@ const api = {
     ipcRenderer.on('tray:new-chat', handler)
     return () => ipcRenderer.removeListener('tray:new-chat', handler)
   },
+  onCoderModeChange: (cb: (enabled: boolean) => void) => {
+    const handler = (_: unknown, enabled: boolean) => cb(enabled)
+    ipcRenderer.on('app:set-coder-mode', handler)
+    return () => ipcRenderer.removeListener('app:set-coder-mode', handler)
+  },
 
   // ── Agent Orchestrator ────────────────────────────────────────────────────
   agentRunLoop: (data: { chatId: string; provider: string; settings: any; messages: any[]; allowedPaths: string[] }) =>
@@ -103,6 +108,7 @@ const api = {
   closeApp: (name: string) => ipcRenderer.invoke('sys:close-app', { name }),
   getDatetime: () => ipcRenderer.invoke('sys:get-datetime'),
   lockScreen: () => ipcRenderer.invoke('sys:lock-screen'),
+  getScreenMetrics: () => ipcRenderer.invoke('sys:get-screen-metrics'),
 
   // ── Screen Analysis ───────────────────────────────────────────────────────
   takeScreenshot: (region?: { x: number; y: number; width: number; height: number }) =>
@@ -115,12 +121,13 @@ const api = {
     ipcRenderer.invoke('screen:analyze-structured', { apiKey, provider, model, region, ollamaBaseUrl }),
 
   // ── Wake Word / Background Voice ─────────────────────────────────────────
-  startBackgroundVoice: (wakeWords: string[]) =>
-    ipcRenderer.invoke('voice:start-background', { wakeWords }),
+  startBackgroundVoice: (wakeWords: string[], microphoneName?: string) =>
+    ipcRenderer.invoke('voice:start-background', { wakeWords, microphoneName }),
   stopBackgroundVoice: () => ipcRenderer.invoke('voice:stop-background'),
   isVoiceListening: () => ipcRenderer.invoke('voice:is-listening'),
   updateWakeWords: (wakeWords: string[]) =>
     ipcRenderer.invoke('voice:update-wake-words', { wakeWords }),
+  getMicrophones: () => ipcRenderer.invoke('voice:get-microphones'),
   onSRStatus: (cb: (data: { status: string; error?: string }) => void) => {
     const handler = (_: unknown, data: any) => cb(data)
     ipcRenderer.on('voice:sr-status', handler)
@@ -244,6 +251,13 @@ const api = {
   coderInvalidateCache: () => ipcRenderer.invoke('coder:invalidate-cache'),
   coderGetStructure: (maxDepth?: number) => ipcRenderer.invoke('coder:get-structure', { maxDepth }),
   coderReadMultiple: (paths: string[]) => ipcRenderer.invoke('coder:read-multiple', { paths }),
+  // ── Coder Mode v2 (Cursor-style) ──────────────────────────────────────────
+  coderGitStatus: () => ipcRenderer.invoke('coder:git-status'),
+  coderGitDiff: (filePath?: string) => ipcRenderer.invoke('coder:git-diff', { filePath }),
+  coderGitCommit: (message: string) => ipcRenderer.invoke('coder:git-commit', { message }),
+  coderApplyDiff: (filePath: string, diff: string) => ipcRenderer.invoke('coder:apply-diff', { filePath, diff }),
+  coderGetSymbols: (filePath: string) => ipcRenderer.invoke('coder:get-symbols', { filePath }),
+  coderSearchCodebase: (query: string) => ipcRenderer.invoke('coder:search-codebase', { query }),
 }
 
 // ── Expose to renderer ────────────────────────────────────────────────────────

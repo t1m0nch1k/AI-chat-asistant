@@ -207,41 +207,37 @@ async function captureScreenshot(region?: { x: number; y: number; width: number;
   const outPath = join(tmpdir(), `agent-ss-${Date.now()}.png`)
   const psPath = outPath.replace(/\\/g, '/')
 
-  if (region) {
-    const script = `
-      Add-Type -AssemblyName System.Windows.Forms
-      Add-Type -AssemblyName System.Drawing
+  // DPI awareness — без него координаты кликов не совпадают со скриншотом при масштабе >100%
+  const dpiHeader = `
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    $sig = '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
+    $t = Add-Type -MemberDefinition $sig -Name DPI -Namespace Win32 -PassThru
+    try { $t::SetProcessDPIAware() | Out-Null } catch {}
+  `
+
+  const script = region ? `
+      ${dpiHeader}
       $bmp = New-Object System.Drawing.Bitmap(${region.width}, ${region.height})
       $g = [System.Drawing.Graphics]::FromImage($bmp)
       $g.CopyFromScreen(${region.x}, ${region.y}, 0, 0, (New-Object System.Drawing.Size(${region.width}, ${region.height})))
       $bmp.Save('${psPath}')
       $g.Dispose(); $bmp.Dispose()
-    `
-    const scriptPath = join(tmpdir(), `agent-ss-script-${Date.now()}.ps1`)
-    writeFileSync(scriptPath, script, 'utf8')
-    try {
-      await execAsync(`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 10000, windowsHide: true })
-    } finally {
-      try { unlinkSync(scriptPath) } catch {}
-    }
-  } else {
-    const script = `
-      Add-Type -AssemblyName System.Windows.Forms
-      Add-Type -AssemblyName System.Drawing
-      $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-      $bmp = New-Object System.Drawing.Bitmap($screen.Width, $screen.Height)
+    ` : `
+      ${dpiHeader}
+      $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen
+      $bmp = New-Object System.Drawing.Bitmap($vs.Width, $vs.Height)
       $g = [System.Drawing.Graphics]::FromImage($bmp)
-      $g.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+      $g.CopyFromScreen($vs.X, $vs.Y, 0, 0, (New-Object System.Drawing.Size($vs.Width, $vs.Height)))
       $bmp.Save('${psPath}')
       $g.Dispose(); $bmp.Dispose()
     `
-    const scriptPath = join(tmpdir(), `agent-ss-script-${Date.now()}.ps1`)
-    writeFileSync(scriptPath, script, 'utf8')
-    try {
-      await execAsync(`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 10000, windowsHide: true })
-    } finally {
-      try { unlinkSync(scriptPath) } catch {}
-    }
+  const scriptPath = join(tmpdir(), `agent-ss-script-${Date.now()}.ps1`)
+  writeFileSync(scriptPath, script, 'utf8')
+  try {
+    await execAsync(`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 10000, windowsHide: true })
+  } finally {
+    try { unlinkSync(scriptPath) } catch {}
   }
 
   if (!existsSync(outPath)) throw new Error('Screenshot not created')

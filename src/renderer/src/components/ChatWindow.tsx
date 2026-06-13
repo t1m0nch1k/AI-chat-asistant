@@ -8,6 +8,42 @@ import { buildAgentSystemPrompt, parseToolCalls } from '../utils/agentTools'
 import { useBackgroundVoice } from '../hooks/useBackgroundVoice'
 import { useAgentLoop } from '../hooks/useAgentLoop'
 import { TimerWidget } from './TimerWidget'
+import { Message } from '../types'
+import { cn } from '../utils/cn'
+
+// ── Coder action helpers (legacy compatibility) ───────────────────────────────
+
+function parseCoderAction(response: string): { type: string; path?: string; content?: string; search?: string; replace?: string; command?: string } | null {
+  // Simple regex to detect coder actions in AI response
+  const writeMatch = response.match(/```write:([^\n]+)\n([\s\S]*?)```/)
+  if (writeMatch) {
+    return { type: 'write', path: writeMatch[1], content: writeMatch[2] }
+  }
+  const patchMatch = response.match(/```patch:([^\n]+)\nsearch:\n([\s\S]*?)\nreplace:\n([\s\S]*?)```/)
+  if (patchMatch) {
+    return { type: 'patch', path: patchMatch[1], search: patchMatch[2], replace: patchMatch[3] }
+  }
+  return null
+}
+
+function stripCoderActions(response: string): string {
+  return response
+    .replace(/```write:[^\n]+\n[\s\S]*?```/g, '')
+    .replace(/```patch:[^\n]+\n[\s\S]*?```/g, '')
+    .trim()
+}
+
+async function executeCoderAction(action: any, chatId: string): Promise<void> {
+  try {
+    if (action.type === 'write' && action.path && action.content) {
+      await window.api.coderWrite(action.path, action.content)
+    } else if (action.type === 'patch' && action.path && action.search && action.replace) {
+      await window.api.coderPatch(action.path, action.search, action.replace)
+    }
+  } catch (e: any) {
+    console.error('Coder action failed:', e)
+  }
+}
 
 // Убирает все варианты tool call из текста для отображения пользователю.
 // Поддерживает: ```tool_call```, ```tool```, ```json```, голый JSON {"name":...,"args":...}
@@ -175,7 +211,19 @@ export const ChatWindow: React.FC = () => {  const {
           const { vp, vm, ollamaUrl } = getVisionParams(s)
           if (!s.apiKey && vp !== 'ollama') return 'No API key'
           const r = await window.api.findElement(args.description as string, s.apiKey, vp, vm, ollamaUrl)
-          return r.found ? `Found at (${r.x}, ${r.y})` : `Not found: ${r.description}`
+          if (!r.found) return `Not found: ${r.description}`
+          // Координаты модели — в пикселях скриншота (0,0 = угол виртуального экрана).
+          // Преобразуем в абсолютные координаты курсора с учётом смещения мультимонитора.
+          let ax = r.x as number
+          let ay = r.y as number
+          try {
+            const m = await window.api.getScreenMetrics?.()
+            if (m?.success && typeof m.x === 'number' && typeof m.y === 'number') {
+              ax += m.x
+              ay += m.y
+            }
+          } catch {}
+          return `Found "${args.description}" at (${ax}, ${ay})`
         }
         default: return `Unknown tool: ${name}`
       }
@@ -216,8 +264,10 @@ export const ChatWindow: React.FC = () => {  const {
       if (!text.trim() || isTyping) return
 
       let activeChatId = currentChatId
-      if (!activeChatId) {
+      if (!activeChatId || !chats.some((c) => c.id === activeChatId)) {
         activeChatId = await createNewChat()
+        // Immediately set as current chat so it opens in the UI
+        useAppStore.setState({ currentChatId: activeChatId })
       }
 
       // Очищаем предыдущие слушатели перед новым запросом
@@ -312,7 +362,7 @@ export const ChatWindow: React.FC = () => {  const {
               provider: agentSettings.provider,
               settings: agentSettings,
               messages: history,
-              allowedPaths: agentUserPaths ?? []
+              allowedPaths: agentUserPaths ? [agentUserPaths.desktop, agentUserPaths.documents, agentUserPaths.homedir] : []
             })
           } catch (e: any) {
             addMessage(agentChatId, {
@@ -707,35 +757,41 @@ export const ChatWindow: React.FC = () => {  const {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-base">
       {/* Voice status bar */}
       {voiceStatus !== 'stopped' && (
-        <div className={`flex items-center gap-2 px-3 py-1.5 text-[11px] border-b border-white/5 ${
-          voiceStatus === 'listening' ? 'bg-red-500/10 text-red-400' :
-          voiceStatus === 'processing' ? 'bg-yellow-500/10 text-yellow-400' :
-          'bg-white/3 text-white/30'
-        }`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${
-            voiceStatus === 'listening' ? 'bg-red-400 animate-pulse' :
-            voiceStatus === 'processing' ? 'bg-yellow-400 animate-pulse' :
-            'bg-white/20'
-          }`} />
-          {voiceStatus === 'waiting' && '🎤 Ожидание wake word...'}
-          {voiceStatus === 'listening' && '🔴 Слушаю...'}
-          {voiceStatus === 'processing' && '⚡ Обрабатываю...'}
+        <div className={cn(
+          'flex items-center gap-sm px-md py-xs text-body-sm border-b border-outline-variant/30',
+          voiceStatus === 'listening' ? 'bg-error-container/10 text-error' :
+          voiceStatus === 'processing' ? 'bg-tertiary-container/10 text-tertiary' :
+          'bg-surface-container/50 text-on-surface-variant/50',
+        )}>
+          <div className={cn(
+            'w-1.5 h-1.5 rounded-full',
+            voiceStatus === 'listening' ? 'bg-error animate-pulse' :
+            voiceStatus === 'processing' ? 'bg-tertiary animate-pulse' :
+            'bg-on-surface-variant/30',
+          )} />
+          {voiceStatus === 'waiting' && (
+            <><span className="material-symbols-outlined text-[14px] mr-xs">mic</span> Waiting for wake word...</>
+          )}
+          {voiceStatus === 'listening' && (
+            <><span className="material-symbols-outlined text-[14px] mr-xs">mic</span> Listening...</>
+          )}
+          {voiceStatus === 'processing' && (
+            <><span className="material-symbols-outlined text-[14px] mr-xs">processing</span> Processing...</>
+          )}
         </div>
       )}
 
       <MessageList messages={currentChat?.messages ?? []} streamingContent={streamingContent} />
 
-      {/* Agent Plan Panel — managed by App.tsx via main process agent */}
-
-      {/* Timer Widget — живые таймеры и будильники */}
+      {/* Timer Widget */}
       <TimerWidget />
 
       {/* Terminal Panel */}
       {showTerminal && (
-        <div className="mx-3 mb-2">
+        <div className="mx-lg mb-sm">
           <Terminal
             className="w-full"
             onClose={() => setShowTerminal(false)}

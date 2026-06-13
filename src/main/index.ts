@@ -14,6 +14,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { createTray } from './tray'
 import { setupAIHandlers } from './ai'
 import { toolManager } from './tool-manager'
+import { setupToolHandlers } from './tools'
 import { agentOrchestrator } from './agent-orchestrator'
 import { setupStoreHandlers } from './store'
 import { setupWebToolHandlers } from './webtools'
@@ -42,8 +43,8 @@ function createWindow(): void {
     height: isWindowMode ? 700 : 680,
     minWidth: 360,
     minHeight: 500,
-    maxWidth: isWindowMode ? 1200 : 800,
-    maxHeight: isWindowMode ? 900 : 900,
+    maxWidth: isWindowMode ? 0 : 800,
+    maxHeight: isWindowMode ? 0 : 900,
     show: true,
     autoHideMenuBar: true,
     frame: !isWindowMode,
@@ -68,13 +69,6 @@ function createWindow(): void {
     shell.openExternal(url)
     return { action: 'deny' }
   })
-
-  // Load app
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
 
   if (is.dev) {
     mainWindow.webContents.openDevTools({ mode: 'detach' })
@@ -109,6 +103,17 @@ function createWindow(): void {
   } else {
     // Даже в режиме трея, при самом первом запуске, стоит показать окно, чтобы пользователь знал, что программа работает
     positionAndShow()
+  }
+}
+
+function loadMainWindow(): void {
+  if (!mainWindow) return
+
+  // Load app
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
 
@@ -166,10 +171,8 @@ app.whenReady().then(() => {
   setupAIHandlers()
   toolManager.init()
   agentOrchestrator.init()
-  setupToolHandlers()
   setupWebToolHandlers()
   setupVoiceHandlers()
-  setupSystemToolHandlers()
   setupWakeWordHandlers(mainWindow!)
   setupScreenAnalysisHandlers()
   setupKnowledgeHandlers()
@@ -180,13 +183,24 @@ app.whenReady().then(() => {
   setAgentWindow(mainWindow!)
   registerHotkey()
 
+
   // Auto-start with Windows
   setupAutoLaunch()
 
   // Auto-updater (production only)
   if (!is.dev) {
     autoUpdater.checkForUpdatesAndNotify()
+
+    autoUpdater.on('update-available', () => {
+      mainWindow?.webContents.send('app:update-available')
+    })
+
+    autoUpdater.on('update-downloaded', () => {
+      mainWindow?.webContents.send('app:update-downloaded')
+    })
   }
+
+  loadMainWindow()
 })
 
 app.on('window-all-closed', () => {
@@ -235,10 +249,10 @@ ipcMain.handle('app:hide-window', () => mainWindow?.hide())
 ipcMain.handle('app:minimize-window', () => mainWindow?.minimize())
 ipcMain.handle('app:maximize-window', () => {
   if (!mainWindow) return
-  if (mainWindow.isMaximized()) {
-    mainWindow.unmaximize()
+  if (mainWindow.isFullScreen()) {
+    mainWindow.setFullScreen(false)
   } else {
-    mainWindow.maximize()
+    mainWindow.setFullScreen(true)
   }
 })
 

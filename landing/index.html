@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus AI — Твой умный помощник на Windows 11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-['Inter'] overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass-nav px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2 group cursor-pointer">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform">
+                <i data-lucide="cpu" class="text-white w-6 h-6"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tight text-white">Nexus <span class="text-indigo-400">AI</span></span>
+        </div>
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+            <a href="#ecosystem" class="hover:text-white transition-colors">Экосистема</a>
+            <a href="#features" class="hover:text-white transition-colors">Возможности</a>
+            <a href="#coder" class="hover:text-white transition-colors">Coder Mode</a>
+            <a href="#security" class="hover:text-white transition-colors">Безопасность</a>
+        </div>
+        <a href="#" class="bg-white text-slate-950 px-5 py-2 rounded-full text-sm font-bold hover:bg-indigo-50 transition-all hover:scale-105 active:scale-95">
+            Скачать
+        </a>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-20 overflow-hidden">
+        <div class="absolute -z-10 w-[600px] h-[600px] bg-indigo-600/20 blur-[120px] rounded-full top-1/4 left-1/4 animate-pulse"></div>
+        <div class="absolute -z-10 w-[400px] h-[400px] bg-blue-600/20 blur-[100px] rounded-full bottom-1/4 right-1/4"></div>
+
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-6 animate-fade-in">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            Версия 2.0 теперь доступна
+        </div>
+        <h1 class="text-5xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight max-w-4xl">
+            Nexus AI — твой умный помощник на <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">Windows 11</span>
+        </h1>
+        <p class="text-slate-400 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
+            Интегрированный AI-агент с глубоким доступом к системе, голосовым управлением и профессиональными инструментами для кодинга.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4">
+            <a href="#" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20 hover:-translate-y-1">
+                Попробовать бесплатно
+            </a>
+            <a href="#features" class="px-8 py-4 glass-card text-white rounded-2xl font-bold text-lg hover:bg-white/10 transition-all border border-white/10">
+                Узнать больше
+            </a>
+        </div>
+
+        <!-- Hero Image Mockup -->
+        <div class="mt-20 relative w-full max-w-5xl animate-float">
+            <div class="glass-card p-2 rounded-3xl border border-white/20 shadow-2xl">
+                <img src="https://images.unsplash.com/photo-1633412802994-55064674a7e3?auto=format&fit=crop&q=80&w=1200" alt="Nexus AI Interface" class="rounded-2xl w-full object-cover shadow-inner">
+            </div>
+            <div class="absolute -bottom-6 -right-6 glass-card p-4 rounded-2xl border border-white/20 shadow-xl hidden md:block animate-float-delayed">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                        <i data-lucide="check" class="text-white w-4 h-4"></i>
+                    </div>
+                    <span class="text-sm font-medium text-white">Система оптимизирована</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Ecosystem -->
+    <section id="ecosystem" class="py-24 px-6 relative">
+        <div class="max-w-6xl mx-auto text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold text-white mb-4">Мультимодельная экосистема</h2>
+            <p class="text-slate-400">Подключайте лучшие AI-модели мира в одном приложении</p>
+        </div>
+        <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <!-- Providers -->
+            <div class="provider-card">OpenAI</div>
+            <div class="provider-card">Anthropic</div>
+            <div class="provider-card">Gemini</div>
+            <div class="provider-card">DeepSeek</div>
+            <div class="provider-card">Mistral</div>
+            <div class="provider-card">Groq</div>
+            <div class="provider-card">OpenRouter</div>
+            <div class="provider-card">Qwen</div>
+            <div class="provider-card">NVIDIA</div>
+            <div class="provider-card">HuggingFace</div>
+            <div class="provider-card">Ollama</div>
+            <div class="provider-card bg-indigo-600/20 border-indigo-500/40 text-indigo-300 flex items-center justify-center font-bold">
+                + Еще
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Features Grid -->
+    <section id="features" class="py-24 px-6 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold text-white mb-4">Интеллект без границ</h2>
+                <p class="text-slate-400">Nexus AI — это не просто чат, это полноценный агент управления вашим ПК</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Voice Control -->
+                <div class="feature-card">
+                    <div class="icon-box bg-blue-500/20 text-blue-400">
+                        <i data-lucide="mic"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Голосовое управление</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Активация по кодовому слову «Ассистент». Работа в фоне, высокая точность распознавания и Discord-style тест микрофона.
+                    </p>
+                </div>
+
+                <!-- Computer Agent -->
+                <div class="feature-card">
+                    <div class="icon-box bg-purple-500/20 text-purple-400">
+                        <i data-lucide="mouse-pointer-2"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Автономный агент</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Целевое планирование задач, анализ экрана через Vision-модели и пошаговое подтверждение действий для безопасности.
+                    </p>
+                </div>
+
+                <!-- Screen Analysis -->
+                <div class="feature-card">
+                    <div class="icon-box bg-pink-500/20 text-pink-400">
+                        <i data-lucide="scan-eye"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Анализ экрана</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Мгновенные скриншоты, поиск элементов интерфейса и понимание контекста того, что вы видите в данный момент.
+                    </p>
+                </div>
+
+                <!-- Knowledge Base -->
+                <div class="feature-card">
+                    <div class="icon-box bg-amber-500/20 text-amber-400">
+                        <i data-lucide="book-open"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">База знаний</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Персонализированные факты, заметки и ваши предпочтения, которые AI использует как контекст для точных ответов.
+                    </p>
+                </div>
+
+                <!-- Scheduler -->
+                <div class="feature-card">
+                    <div class="icon-box bg-green-500/20 text-green-400">
+                        <i data-lucide="calendar"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Планировщик</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Умные напоминания, таймеры и будильники с голосовым уведомлением (TTS). Nexus AI помнит всё за вас.
+                    </p>
+                </div>
+
+                <!-- Agent Tools -->
+                <div class="feature-card">
+                    <div class="icon-box bg-indigo-500/20 text-indigo-400">
+                        <i data-lucide="wrench"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Инструменты агента</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        25+ инструментов: работа с файловой системой, системные команды, поиск в DDG, Tavily, YouTube и встроенный браузер.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Coder Mode Section -->
+    <section id="coder" class="py-24 px-6 relative overflow-hidden">
+        <div class="absolute -z-10 w-full h-full bg-indigo-900/10 blur-3xl rounded-full scale-150"></div>
+        <div class="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+            <div class="lg:w-1/2 text-left">
+                <h2 class="text-3xl md:text-5xl font-bold text-white mb-6">Профессиональный <br><span class="text-indigo-400">Coder Mode</span></h2>
+                <p class="text-slate-400 text-lg mb-8 leading-relaxed">
+                    Забудьте о постоянном переключении между окнами. Полноценная среда разработки прямо в вашем AI-помощнике.
+                </p>
+                <ul class="space-y-4">
+                    <li class="flex items-center gap-3 text-slate-300">
+                        <i data-lucide="check-circle-2" class="text-indigo-500 w-5 h-5"></i>
+                        Встроенный редактор кода с подсветкой
+                    </li>
+                    <li class="flex items-center gap-3 text-slate-300">
+                        <i data-lucide="check-circle-2" class="text-indigo-500 w-5 h-5"></i>
+                        Дерево файлов и контекст всего проекта
+                    </li>
+                    <li class="flex items-center gap-3 text-slate-300">
+                        <i data-lucide="check-circle-2" class="text-indigo-500 w-5 h-5"></i>
+                        Интегрированный терминал для запуска и тестов
+                    </li>
+                </ul>
+            </div>
+            <div class="lg:w-1/2 relative">
+                <div class="glass-card p-4 rounded-3xl border border-white/20 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
+                    <div class="bg-slate-900 rounded-xl overflow-hidden border border-white/10">
+                        <div class="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-xs text-slate-500 ml-2 font-mono">main.ts — Nexus AI</span>
+                        </div>
+                        <div class="p-4 font-mono text-sm text-indigo-300 leading-relaxed">
+                            <span class="text-pink-500">async function</span> <span class="text-blue-400">executeTask</span>(task: Task) {<br>
+                            &nbsp;&nbsp;<span class="text-slate-500">// Анализ контекста экрана</span><br>
+                            &nbsp;&nbsp;<span class="text-pink-500">const</span> screen = <span class="text-blue-400">await</span> vision.<span class="text-blue-400">analyze</span>();<br>
+                            &nbsp;&nbsp;<span class="text-pink-500">const</span> plan = <span class="text-pink-500">await</span> ai.<span class="text-blue-400">createPlan</span>(task, screen);<br>
+                            &nbsp;&nbsp;<span class="text-pink-500">for</span> (<span class="text-pink-500">const</span> step <span class="text-pink-500">of</span> plan.steps) {<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-pink-500">await</span> agent.<span class="text-blue-400">execute</span>(step);<br>
+                            &nbsp;&nbsp;}<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Windows Integration & Performance -->
+    <section class="py-24 px-6 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Windows Integration -->
+                <div class="glass-card p-8 rounded-3xl border border-white/10">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
+                            <i data-lucide="monitor"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white">Интеграция с Windows</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Tray & Hotkeys</span>
+                            <span class="text-xs text-slate-400">Быстрый доступ из трея и глобальные горячие клавиши.</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Native C# Server</span>
+                            <span class="text-xs text-slate-400">Максимальная производительность и низкий пинг.</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Auto-start</span>
+                            <span class="text-xs text-slate-400">Запуск вместе с системой для мгновенной помощи.</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Window Modes</span>
+                            <span class="text-xs text-slate-400">Разные режимы отображения: от оверлея до окна.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance & UI -->
+                <div class="glass-card p-8 rounded-3xl border border-white/10">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
+                            <i data-lucide="zap"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white">Производительность и UI</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Streaming Chat</span>
+                            <span class="text-xs text-slate-400">Мгновенный вывод текста в реальном времени.</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Glassmorphism</span>
+                            <span class="text-xs text-slate-400">Современный интерфейс в стиле Windows 11 Fluent.</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Adaptive Themes</span>
+                            <span class="text-xs text-slate-400">Поддержка темной, светлой и системной тем.</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                            <span class="block text-white font-semibold mb-1">Markdown Support</span>
+                            <span class="text-xs text-slate-400">Красивое форматирование кода и таблиц.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section id="security" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto glass-card p-12 rounded-[3rem] border border-indigo-500/30 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+            <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-4">Ваша приватность — наш приоритет</h2>
+            <p class="text-slate-400 mb-8 leading-relaxed">
+                Мы используем <strong>safeStorage</strong> для защиты ваших API-ключей. Голосовой движок и TTS работают локально, гарантируя, что ваши данные не покидают устройство без необходимости.
+            </p>
+            <div class="flex flex-wrap justify-center gap-8 text-sm text-slate-500">
+                <span class="flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4"></i> AES-256 Encryption</span>
+                <span class="flex items-center gap-2"><i data-lucide="user-check" class="w-4 h-4"></i> Local-First Data</span>
+                <span class="flex items-center gap-2"><i data-lucide="cloud-off" class="w-4 h-4"></i> No Tracking</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Distribution -->
+    <section class="py-24 px-6 text-center">
+        <h2 class="text-3xl font-bold text-white mb-12">Готовы начать?</h2>
+        <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="p-6 rounded-3xl glass-card border border-white/10 flex flex-col items-center">
+                <i data-lucide="download" class="text-indigo-400 mb-4 w-8 h-8"></i>
+                <span class="text-white font-bold mb-2">NSIS Installer</span>
+                <span class="text-xs text-slate-400">Простая установка в один клик</span>
+            </div>
+            <div class="p-6 rounded-3xl glass-card border border-white/10 flex flex-col items-center">
+                <i data-lucide="box" class="text-indigo-400 mb-4 w-8 h-8"></i>
+                <span class="text-white font-bold mb-2">Portable .exe</span>
+                <span class="text-xs text-slate-400">Работает без установки</span>
+            </div>
+            <div class="p-6 rounded-3xl glass-card border border-white/10 flex flex-col items-center">
+                <i data-lucide="refresh-cw" class="text-indigo-400 mb-4 w-8 h-8"></i>
+                <span class="text-white font-bold mb-2">GitHub Updates</span>
+                <span class="text-xs text-slate-400">Автоматическое обновление</span>
+            </div>
+        </div>
+        <div class="mt-16">
+            <a href="#" class="px-12 py-5 bg-white text-slate-950 rounded-full font-bold text-xl hover:scale-105 transition-transform inline-block">
+                Скачать Nexus AI
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-white/5 text-center">
+        <div class="flex items-center justify-center gap-2 mb-6">
+            <div class="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center">
+                <i data-lucide="cpu" class="text-white w-3 h-3"></i>
+            </div>
+            <span class="text-lg font-bold text-white">Nexus AI</span>
+        </div>
+        <p class="text-slate-500 text-sm">&copy; 2026 Nexus AI. Создано для будущего Windows.</p>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

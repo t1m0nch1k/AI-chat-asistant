@@ -33,7 +33,9 @@ const DEFAULT_SETTINGS: Settings = {
   ttsRate: 0,
   ttsVolume: 100,
   ttsVoice: '',
-  logToFile: true
+  microphoneName: undefined,
+  logToFile: true,
+  unrestrictedMode: false,
 }
 
 // ============================================================
@@ -66,7 +68,7 @@ interface AppState {
   addMessage: (chatId: string, message: Message) => void
   updateLastMessage: (chatId: string, content: string) => void
   finalizeLastMessage: (chatId: string, content: string) => void
-  createNewChat: () => string
+  createNewChat: () => Promise<string>
   deleteChat: (chatId: string) => void
   renameChat: (chatId: string, title: string) => void
   setCurrentChat: (chatId: string) => void

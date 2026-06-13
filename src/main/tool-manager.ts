@@ -11,6 +11,7 @@ import * as os from 'os'
 import { spawn } from 'child_process'
 import { setupToolHandlers } from './tools'
 import { setupSystemToolHandlers } from './systemtools'
+import { browserServer } from './browser-server'
 
 export interface ToolResult {
   success: boolean
@@ -36,6 +37,9 @@ export class ToolManager {
    * Initializes all tool-related IPC handlers.
    */
   public init(): void {
+    // Start the browser extension server
+    browserServer.start()
+
     // Register modular handlers
     setupToolHandlers()
     setupSystemToolHandlers()
@@ -78,12 +82,32 @@ export class ToolManager {
           return { success: true, content: `Launched application: ${app}` }
         }
 
-        // ── Router to existing modular handlers ─────────────────────────────
-        // To avoid duplicating all logic immediately, we can call the 
-        // handlers defined in tools.ts / systemtools.ts
-        // However, the 'Hard Critic' wants a clean architecture.
-        // We will gradually move logic from tools.ts to here.
+        // ── Browser Extension Tools (Bi-directional) ────────────────────────
+        case 'browser_get_page_text':
+          return await browserServer.sendCommand('get_page_text')
+        
+        case 'browser_get_html':
+          return await browserServer.sendCommand('get_html')
+        
+        case 'browser_get_interactive_elements':
+          return await browserServer.sendCommand('get_interactive_elements')
+        
+        case 'browser_click':
+          return await browserServer.sendCommand('click', { selector: args.selector })
+        
+        case 'browser_type':
+          return await browserServer.sendCommand('type', { selector: args.selector, text: args.text })
+        
+        case 'browser_scroll':
+          return await browserServer.sendCommand('scroll', { y: args.y })
+        
+        case 'browser_screenshot':
+          return await browserServer.sendCommand('screenshot')
+        
+        case 'browser_open_url':
+          return await browserServer.sendCommand('open_url', { url: args.url })
 
+        // ── Router to existing modular handlers ─────────────────────────────
         default:
           return { success: false, error: `Tool ${name} is not implemented in ToolManager yet.` }
       }

@@ -21,9 +21,6 @@ function getLogPath() {
 
 function writeToLogFile(entry: LogEntry): void {
   try {
-    const settings = store.get('settings') as any
-    if (settings?.logToFile === false) return
-
     const date = new Date(entry.timestamp).toISOString()
     const line = `[${date}] [${entry.source.toUpperCase()}] [${entry.level.toUpperCase()}] ${entry.message}\n`
     fs.appendFileSync(getLogPath(), line, 'utf8')
@@ -70,29 +67,7 @@ export function setupLogHandlers(): void {
 
   // Global exception handlers
   process.on('uncaughtException', (err) => {
-    addLog('error', `UNCUGHT EXCEPTION: ${err.stack || err.message}`, 'main')
-  })
-  process.on('unhandledRejection', (reason) => {
-    addLog('error', `UNHANDLED REJECTION: ${reason}`, 'main')
-  })
-
-  ipcMain.handle('logs:get', () => {
-    return logs
-  })
-
-  ipcMain.handle('logs:clear', () => {
-    logs.length = 0
-    return { success: true }
-  })
-
-  ipcMain.handle('logs:add', (_event, entry: { level: LogEntry['level']; message: string }) => {
-    addLog(entry.level, entry.message, 'renderer')
-    return { success: true }
-  })
-}
-  // Global exception handlers
-  process.on('uncaughtException', (err) => {
-    addLog('error', `UNCUGHT EXCEPTION: ${err.stack || err.message}`, 'main')
+    addLog('error', `UNCAUGHT EXCEPTION: ${err.stack || err.message}`, 'main')
   })
   process.on('unhandledRejection', (reason) => {
     addLog('error', `UNHANDLED REJECTION: ${reason}`, 'main')

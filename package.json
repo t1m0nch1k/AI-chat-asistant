@@ -1,6 +1,6 @@
 {
   "name": "ai-chat-assistant",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Windows 11 AI Chat Bot Assistant with Agent capabilities",
   "main": "./out/main/index.js",
   "author": "Artem",
@@ -9,8 +9,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "package": "electron-vite build && electron-builder",
-    "package:portable": "electron-vite build && electron-builder --config.win.target=portable",
+    "build:voice-agent": "cd resources/voice-agent && dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true",
+    "package": "npm run build:voice-agent && electron-vite build && electron-builder",
+    "package:portable": "npm run build:voice-agent && electron-vite build && electron-builder --config.win.target=portable",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --fix"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "react-syntax-highlighter": "^15.5.0",
     "remark-gfm": "^4.0.0",
     "tailwind-merge": "^2.3.0",
+    "ws": "^8.21.0",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
@@ -38,6 +40,7 @@
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "electron": "^30.0.6",
@@ -59,6 +62,13 @@
       "resources/**/*"
     ],
     "extraResources": [
+      {
+        "from": "resources/voice-agent/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish",
+        "to": "voice-agent",
+        "filter": [
+          "**/*"
+        ]
+      },
       {
         "from": "resources",
         "to": "resources"
@@ -95,8 +105,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "artem",
-      "repo": "ai-chat-assistant"
+      "owner": "t1m0nch1k",
+      "repo": "AI-chat-asistant"
     }
   }
 }

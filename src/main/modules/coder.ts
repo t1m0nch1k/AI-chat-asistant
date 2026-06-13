@@ -123,7 +123,7 @@ async function scanDirectory(
 ): Promise<CoderFileNode[]> {
   if (counter.count >= MAX_SCAN_FILES) return []
 
-  let entries: Awaited<ReturnType<typeof fs.readdir>>
+  let entries: fs.Dirent[]
   try {
     entries = await fs.readdir(dirPath, { withFileTypes: true })
   } catch {
@@ -132,24 +132,25 @@ async function scanDirectory(
 
   entries.sort((a, b) => {
     if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1
-    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' })
   })
 
   const nodes: CoderFileNode[] = []
 
   for (const entry of entries) {
     if (counter.count >= MAX_SCAN_FILES) break
-    if (entry.isDirectory() && isExcludedDir(entry.name)) continue
+    const entryName = String(entry.name)
+    if (entry.isDirectory() && isExcludedDir(entryName)) continue
 
-    const absPath = path.join(dirPath, entry.name)
-    const relPath = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name
+    const absPath = path.join(dirPath, entryName)
+    const relPath = relativePrefix ? `${relativePrefix}/${entryName}` : entryName
 
     try {
       const stat = await fs.stat(absPath)
       counter.count++
 
       const node: CoderFileNode = {
-        name: entry.name,
+        name: entryName,
         path: absPath,
         relativePath: relPath.replace(/\\/g, '/'),
         isDirectory: entry.isDirectory(),
@@ -344,6 +345,356 @@ async function readMultiple(inputPaths: string[]): Promise<CoderResult<{ files: 
   return { success: true, data: { files } }
 }
 
+// ── Git Operations ──────────────────────────────────────────────────────────────
+
+async function getGitStatus(): Promise<CoderResult<{ status: any }>> {
+  if (!workspaceRoot) {
+    return { success: false, error: 'No workspace open' }
+  }
+
+  try {
+    // Check if git repo
+    const gitDir = path.join(workspaceRoot, '.git')
+    const stat = await fs.stat(gitDir).catch(() => null)
+    const isRepo = stat?.isDirectory() ?? false
+
+    if (!isRepo) {
+      return { success: true, data: { status: { isRepo: false, branch: '', ahead: 0, behind: 0, files: [] } } }
+    }
+
+    // Get branch
+    const { stdout: branchOut } = await execAsync('git rev-parse --abbrev-ref HEAD', {
+      cwd: workspaceRoot,
+      timeout: 5000,
+      shell: 'cmd',
+      windowsHide: true
+    })
+    const branch = branchOut.trim()
+
+    // Get ahead/behind
+    let ahead = 0, behind = 0
+    try {
+      const { stdout: abOut } = await execAsync(`git rev-list --left-right --count origin/${branch}...HEAD`, {
+        cwd: workspaceRoot,
+        timeout: 5000,
+        shell: 'cmd',
+        windowsHide: true
+      })
+      const [b, a] = abOut.trim().split(/\s+/).map(Number)
+      behind = b || 0
+      ahead = a || 0
+    } catch {
+      // No remote or error — ignore
+    }
+
+    // Get file status
+    const { stdout: statusOut } = await execAsync('git status --porcelain', {
+      cwd: workspaceRoot,
+      timeout: 5000,
+      shell: 'cmd',
+      windowsHide: true
+    })
+
+    const files: Array<{ path: string; status: string; staged: boolean }> = []
+    for (const line of statusOut.split('\n').filter(Boolean)) {
+      const staged = line[0] !== ' ' && line[0] !== '?'
+      const statusCode = staged ? line[0] : line[1]
+      const filePath = line.slice(3).trim()
+      
+      let status = 'modified'
+      if (statusCode === 'A') status = 'added'
+      else if (statusCode === 'D') status = 'deleted'
+      else if (statusCode === 'R') status = 'renamed'
+      else if (statusCode === 'U' || statusCode === 'C') status = 'conflict'
+      else if (statusCode === '?') status = 'untracked'
+
+      files.push({ path: filePath, status, staged })
+    }
+
+    return {
+      success: true,
+      data: {
+        status: { isRepo: true, branch, ahead, behind, files }
+      }
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
+async function getGitDiff(filePath?: string): Promise<CoderResult<{ diff: string }>> {
+  if (!workspaceRoot) {
+    return { success: false, error: 'No workspace open' }
+  }
+
+  try {
+    const cmd = filePath
+      ? `git diff -- "${filePath}"`
+      : 'git diff'
+    const { stdout } = await execAsync(cmd, {
+      cwd: workspaceRoot,
+      timeout: 10000,
+      shell: 'cmd',
+      windowsHide: true
+    })
+    return { success: true, data: { diff: stdout } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
+async function gitCommit(message: string): Promise<CoderResult<{ hash: string }>> {
+  if (!workspaceRoot) {
+    return { success: false, error: 'No workspace open' }
+  }
+
+  try {
+    const { stdout } = await execAsync(`git commit -m "${message.replace(/"/g, '\\"')}"`, {
+      cwd: workspaceRoot,
+      timeout: 10000,
+      shell: 'cmd',
+      windowsHide: true
+    })
+    const hashMatch = stdout.match(/\[.+\s([a-f0-9]+)\]/)
+    return { success: true, data: { hash: hashMatch?.[1] || 'unknown' } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
+// ── Apply Diff ────────────────────────────────────────────────────────────────
+
+async function applyDiff(filePath: string, diffContent: string): Promise<CoderResult<{ path: string }>> {
+  try {
+    const absPath = resolveWorkspacePath(filePath)
+    const current = await fs.readFile(absPath, 'utf8')
+    const lines = current.split('\n')
+    
+    // Simple unified diff parser
+    const diffLines = diffContent.split('\n')
+    let result: string[] = []
+    let inHunk = false
+    let sourceIdx = 0
+    
+    for (const dline of diffLines) {
+      if (dline.startsWith('@@')) {
+        // Parse hunk header: @@ -start,count +start,count @@
+        const match = dline.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/)
+        if (match) {
+          const startLine = parseInt(match[1]) - 1 // 0-based
+          // Copy lines before hunk
+          while (sourceIdx < startLine && sourceIdx < lines.length) {
+            result.push(lines[sourceIdx])
+            sourceIdx++
+          }
+          inHunk = true
+        }
+      } else if (inHunk) {
+        if (dline.startsWith('-')) {
+          // Skip removed line
+          sourceIdx++
+        } else if (dline.startsWith('+')) {
+          // Add new line
+          result.push(dline.slice(1))
+        } else if (dline.startsWith(' ')) {
+          // Context line
+          result.push(dline.slice(1))
+          sourceIdx++
+        } else if (dline === '') {
+          // Empty context line
+          result.push('')
+          sourceIdx++
+        } else if (dline.startsWith('\\')) {
+          // "\ No newline at end of file" — ignore
+        }
+      }
+    }
+    
+    // Copy remaining lines
+    while (sourceIdx < lines.length) {
+      result.push(lines[sourceIdx])
+      sourceIdx++
+    }
+    
+    const newContent = result.join('\n')
+    const tmpPath = `${absPath}.coder.tmp.${process.pid}`
+    await fs.writeFile(tmpPath, newContent, 'utf8')
+    await fs.rename(tmpPath, absPath)
+    
+    invalidateCache()
+    logCoder(`Applied diff to ${filePath}`)
+    return { success: true, data: { path: absPath } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
+// ── File Symbols (simple regex-based) ─────────────────────────────────────────
+
+interface FileSymbol {
+  name: string
+  kind: string
+  line: number
+  column: number
+  signature?: string
+}
+
+async function getFileSymbols(filePath: string): Promise<CoderResult<{ symbols: FileSymbol[] }>> {
+  try {
+    const absPath = resolveWorkspacePath(filePath)
+    const content = await fs.readFile(absPath, 'utf8')
+    const lines = content.split('\n')
+    const symbols: FileSymbol[] = []
+    
+    const ext = path.extname(filePath).toLowerCase()
+    
+    if (ext === '.ts' || ext === '.tsx' || ext === '.js' || ext === '.jsx') {
+      // TypeScript/JavaScript patterns
+      const patterns = [
+        { regex: /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/, kind: 'function' },
+        { regex: /^(?:export\s+)?(?:async\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/, kind: 'function' },
+        { regex: /^(?:export\s+)?class\s+(\w+)(?:\s+extends\s+\w+)?/, kind: 'class' },
+        { regex: /^(?:export\s+)?interface\s+(\w+)/, kind: 'interface' },
+        { regex: /^(?:export\s+)?type\s+(\w+)\s*=/, kind: 'type' },
+        { regex: /^(?:export\s+)?enum\s+(\w+)/, kind: 'enum' },
+        { regex: /^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[:=]/, kind: 'variable' },
+        { regex: /^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s*\*?\s*(\w+)\s*\(/, kind: 'function' },
+      ]
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        for (const p of patterns) {
+          const match = line.match(p.regex)
+          if (match) {
+            symbols.push({
+              name: match[1],
+              kind: p.kind,
+              line: i + 1,
+              column: line.indexOf(match[1]) + 1,
+              signature: line.trim().slice(0, 80)
+            })
+            break
+          }
+        }
+      }
+    } else if (ext === '.py') {
+      // Python patterns
+      const patterns = [
+        { regex: /^(?:async\s+)?def\s+(\w+)\s*\(/, kind: 'function' },
+        { regex: /^class\s+(\w+)(?:\s*\([^)]*\))?\s*:/, kind: 'class' },
+        { regex: /^(\w+)\s*=\s*/, kind: 'variable' },
+      ]
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        for (const p of patterns) {
+          const match = line.match(p.regex)
+          if (match) {
+            symbols.push({
+              name: match[1],
+              kind: p.kind,
+              line: i + 1,
+              column: line.indexOf(match[1]) + 1,
+              signature: line.trim().slice(0, 80)
+            })
+            break
+          }
+        }
+      }
+    }
+    
+    return { success: true, data: { symbols } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
+// ── Codebase Search (simple text search) ──────────────────────────────────────
+
+async function searchCodebase(query: string): Promise<CoderResult<{ results: Array<{ filePath: string; relativePath: string; line: number; text: string }> }>> {
+  if (!workspaceRoot) {
+    return { success: false, error: 'No workspace open' }
+  }
+
+  try {
+    const results: Array<{ filePath: string; relativePath: string; line: number; text: string }> = []
+    const lowerQuery = query.toLowerCase()
+    
+    // Use ripgrep if available, otherwise fallback to node fs
+    try {
+      const { stdout } = await execAsync(
+        `rg -n -i --type-add 'code:*.{ts,tsx,js,jsx,py,java,go,rs,c,cpp,h,hpp,rb,php,swift,kt}' -tcode "${query.replace(/"/g, '\\"')}"`,
+        {
+          cwd: workspaceRoot,
+          timeout: 30000,
+          shell: 'cmd',
+          windowsHide: true
+        }
+      )
+      
+      for (const line of stdout.split('\n').filter(Boolean)) {
+        const match = line.match(/^(.+?):(\d+):(.*)$/)
+        if (match) {
+          const relPath = path.relative(workspaceRoot, match[1]).replace(/\\/g, '/')
+          results.push({
+            filePath: match[1],
+            relativePath: relPath,
+            line: parseInt(match[2]),
+            text: match[3].trim()
+          })
+        }
+      }
+    } catch {
+      // Fallback: manual file search
+      const scan = await scanWorkspace()
+      if (scan.success && scan.data) {
+        const files = flattenFiles(scan.data.tree)
+        for (const file of files) {
+          if (isBinaryFile(file.path)) continue
+          try {
+            const content = await fs.readFile(file.path, 'utf8')
+            const lines = content.split('\n')
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].toLowerCase().includes(lowerQuery)) {
+                results.push({
+                  filePath: file.path,
+                  relativePath: file.relativePath,
+                  line: i + 1,
+                  text: lines[i].trim()
+                })
+                if (results.length >= 50) break
+              }
+            }
+            if (results.length >= 50) break
+          } catch {}
+        }
+      }
+    }
+    
+    return { success: true, data: { results: results.slice(0, 50) } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, error: message }
+  }
+}
+
+function flattenFiles(nodes: CoderFileNode[]): CoderFileNode[] {
+  const result: CoderFileNode[] = []
+  for (const node of nodes) {
+    if (!node.isDirectory) {
+      result.push(node)
+    } else if (node.children) {
+      result.push(...flattenFiles(node.children))
+    }
+  }
+  return result
+}
+
 // ── IPC Handlers ──────────────────────────────────────────────────────────────
 
 export function setupCoderHandlers(): void {
@@ -370,18 +721,38 @@ export function setupCoderHandlers(): void {
   }))
 
   ipcMain.handle('coder:pick-workspace', async () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (!win) return { success: false, error: 'No focused window' }
-
-    const result = await dialog.showOpenDialog(win, { properties: ['openDirectory'] })
-    if (result.canceled || !result.filePaths[0]) {
-      return { success: false, error: 'Cancelled' }
+    console.log('[Coder] Received request to pick workspace')
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+    
+    if (!win) {
+      console.error('[Coder] No window available to attach the dialog to')
+      return { success: false, error: 'No window available' }
     }
 
-    workspaceRoot = path.normalize(result.filePaths[0])
-    invalidateCache()
-    logCoder(`Workspace picked: ${workspaceRoot}`)
-    return { success: true, data: { path: workspaceRoot } }
+    console.log(`[Coder] Attaching dialog to window: ${win.id}`)
+    try {
+      const result = await dialog.showOpenDialog(win, {
+        properties: ['openDirectory'],
+        title: 'Select Project Folder',
+        buttonLabel: 'Select Folder'
+      })
+
+      if (result.canceled || !result.filePaths[0]) {
+        console.log('[Coder] User cancelled the folder selection')
+        return { success: false, error: 'Cancelled' }
+      }
+
+      const pickedPath = path.normalize(result.filePaths[0])
+      console.log(`[Coder] Folder picked: ${pickedPath}`)
+      
+      workspaceRoot = pickedPath
+      invalidateCache()
+      
+      return { success: true, data: { path: pickedPath } }
+    } catch (err: any) {
+      console.error('[Coder] Error showing open dialog:', err)
+      return { success: false, error: err.message }
+    }
   })
 
   ipcMain.handle('coder:scan', async (_, { force }: { force?: boolean } = {}) => {
@@ -445,7 +816,47 @@ export function setupCoderHandlers(): void {
     return { success: true, files: result.data!.files }
   })
 
-  logCoder('Handlers registered')
+  // ── Git ─────────────────────────────────────────────────────────────────────
+
+  ipcMain.handle('coder:git-status', async () => {
+    const result = await getGitStatus()
+    if (!result.success) return result
+    return { success: true, status: result.data!.status }
+  })
+
+  ipcMain.handle('coder:git-diff', async (_, { filePath }: { filePath?: string } = {}) => {
+    const result = await getGitDiff(filePath)
+    if (!result.success) return result
+    return { success: true, diff: result.data!.diff }
+  })
+
+  ipcMain.handle('coder:git-commit', async (_, { message }: { message: string }) => {
+    const result = await gitCommit(message)
+    if (!result.success) return result
+    return { success: true, hash: result.data!.hash }
+  })
+
+  // ── Diff / Symbols / Search ─────────────────────────────────────────────────
+
+  ipcMain.handle('coder:apply-diff', async (_, { filePath, diff }: { filePath: string; diff: string }) => {
+    const result = await applyDiff(filePath, diff)
+    if (!result.success) return result
+    return { success: true, path: result.data!.path }
+  })
+
+  ipcMain.handle('coder:get-symbols', async (_, { filePath }: { filePath: string }) => {
+    const result = await getFileSymbols(filePath)
+    if (!result.success) return result
+    return { success: true, symbols: result.data!.symbols }
+  })
+
+  ipcMain.handle('coder:search-codebase', async (_, { query }: { query: string }) => {
+    const result = await searchCodebase(query)
+    if (!result.success) return result
+    return { success: true, results: result.data!.results }
+  })
+
+  logCoder('Handlers registered (v2 — Cursor-style)')
 }
 
 // ── Exports for testing / agent loop ──────────────────────────────────────────

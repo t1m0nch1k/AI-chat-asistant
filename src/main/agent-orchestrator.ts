@@ -110,6 +110,11 @@ export class AgentOrchestrator {
 
         // 4. Execute tools sequentially
         for (const toolCall of toolCalls) {
+          // Auto-switch to Coder Mode for coding tasks
+          if (toolCall.name.startsWith('write_') || toolCall.name.startsWith('create_') || toolCall.name.startsWith('edit_') || toolCall.name.includes('code')) {
+            event.sender.send('app:set-coder-mode', true)
+          }
+
           const result = await toolManager.execute(toolCall.name, toolCall.args, allowedPaths)
           
           const resultMsg = result.success 

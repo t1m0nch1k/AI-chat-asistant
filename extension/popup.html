@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI Assistant Status</title>
+  <style>
+    body {
+      width: 200px;
+      font-family: sans-serif;
+      padding: 10px;
+    }
+    .status-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: gray;
+    }
+    .connected { background-color: #4caf50; }
+    .disconnected { background-color: #f44336; }
+    .info { font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <h3>AI Browser Assistant</h3>
+  <div class="status-container">
+    <div id="status-indicator" class="indicator"></div>
+    <span id="status-text">Checking...</span>
+  </div>
+  <div class="info">Connecting to localhost:8000</div>
+  <script src="popup.js"></script>
+</body>
+</html>

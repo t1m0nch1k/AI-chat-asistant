@@ -122,6 +122,11 @@ export interface Settings {
   ttsRate: number
   ttsVolume: number
   ttsVoice: string  // Имя голоса Windows SAPI, '' = по умолчанию
+  microphoneName?: string  // Выбранный микрофон, undefined = системный по умолчанию
+
+  // Logging & Security
+  logToFile?: boolean
+  unrestrictedMode?: boolean
 }
 
 export interface Message {
@@ -232,6 +237,143 @@ export interface CoderWorkspaceState {
   openFiles: string[]
   activeFile: string | null
   isScanning: boolean
+}
+
+// ── Coder Chat ────────────────────────────────────────────────────────────────
+
+export interface CoderChatMessage {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: number
+  /** Attached file context for this message */
+  attachedFiles?: string[]
+  /** Code changes proposed by AI */
+  codeChanges?: CodeChange[]
+  /** Whether this message is still streaming */
+  streaming?: boolean
+}
+
+export interface CodeChange {
+  id: string
+  filePath: string
+  originalCode: string
+  suggestedCode: string
+  startLine: number
+  endLine: number
+  status: 'pending' | 'applied' | 'rejected'
+  description?: string
+}
+
+// ── Inline Editing (Cmd+K) ──────────────────────────────────────────────────
+
+export interface CoderInlineEditState {
+  status: 'input' | 'generating' | 'suggested' | 'applied' | 'rejected'
+  originalCode: string
+  suggestedCode: string | null
+  startLine: number
+  endLine: number
+  prompt: string
+  error?: string
+}
+
+// ── Git ─────────────────────────────────────────────────────────────────────
+
+export interface GitFileStatus {
+  path: string
+  status: 'modified' | 'added' | 'deleted' | 'untracked' | 'renamed' | 'conflict'
+  staged: boolean
+}
+
+export interface GitStatus {
+  branch: string
+  ahead: number
+  behind: number
+  files: GitFileStatus[]
+  isRepo: boolean
+}
+
+export interface GitCommit {
+  hash: string
+  message: string
+  author: string
+  date: string
+  filesChanged: number
+}
+
+// ── Codebase Search ─────────────────────────────────────────────────────────
+
+export interface CodebaseSearchResult {
+  filePath: string
+  relativePath: string
+  line: number
+  column: number
+  text: string
+  score: number
+}
+
+export interface FileSymbol {
+  name: string
+  kind: 'function' | 'class' | 'interface' | 'variable' | 'import' | 'export' | 'type' | 'method' | 'property' | 'other'
+  line: number
+  column: number
+  signature?: string
+}
+
+export interface FileOutline {
+  path: string
+  symbols: FileSymbol[]
+}
+
+// ── Cursor/OpenCode Types ─────────────────────────────────────────────────
+
+export interface PendingChange {
+  id: string
+  filePath: string
+  originalCode: string
+  suggestedCode: string
+  startLine: number
+  endLine: number
+  status: 'pending' | 'applied' | 'rejected' | 'applying'
+  description?: string
+  isNewFile?: boolean
+  diff?: string
+}
+
+export interface ComposerFile {
+  path: string
+  content: string
+  originalContent: string
+  language: string
+  isActive: boolean
+  isModified: boolean
+}
+
+export interface CoderAgentStep {
+  id: string
+  type: 'read' | 'write' | 'patch' | 'search' | 'terminal' | 'thinking' | 'plan' | 'complete'
+  description: string
+  filePath?: string
+  command?: string
+  status: 'pending' | 'running' | 'done' | 'error'
+  result?: string
+  timestamp: number
+}
+
+export interface CoderAgentState {
+  isRunning: boolean
+  steps: CoderAgentStep[]
+  currentStep: string | null
+  goal: string
+  mode: 'chat' | 'agent' | 'composer'
+  autoApprove: boolean
+}
+
+export interface RelevantFile {
+  path: string
+  reason: string
+  score: number
+  content?: string
 }
 
 // ============================================================

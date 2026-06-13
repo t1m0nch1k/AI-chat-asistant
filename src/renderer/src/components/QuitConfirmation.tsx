@@ -1,6 +1,5 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Power, Minimize2 } from 'lucide-react'
 
 interface QuitConfirmationProps {
   isOpen: boolean
@@ -14,7 +13,6 @@ export const QuitConfirmation: React.FC<QuitConfirmationProps> = ({ isOpen, onCl
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -22,46 +20,41 @@ export const QuitConfirmation: React.FC<QuitConfirmationProps> = ({ isOpen, onCl
             onClick={onClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-          
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md bg-[#151515] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-surface border border-outline-variant rounded-xl shadow-2xl overflow-hidden"
           >
-            <div className="p-6 text-center">
-              <div className="mx-auto w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mb-4">
-                <Power size={32} />
+            <div className="p-lg text-center">
+              <div className="mx-auto w-16 h-16 bg-primary-container/20 text-primary-container rounded-full flex items-center justify-center mb-md">
+                <span className="material-symbols-outlined text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>power_settings_new</span>
               </div>
-              
-              <h3 className="text-xl font-semibold text-white mb-2">Закрыть приложение?</h3>
-              <p className="text-white/50 text-sm mb-8 leading-relaxed">
-                Вы действительно хотите выйти? Вы можете свернуть приложение в трей, 
-                чтобы оно продолжало работать в фоновом режиме.
+              <h3 className="font-headline-md text-headline-md text-on-surface mb-sm">Close application?</h3>
+              <p className="text-body-sm text-on-surface-variant mb-lg leading-relaxed">
+                You can minimize to tray to keep the app running in the background.
               </p>
-              
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-sm">
                 <button
                   onClick={onHide}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-all border border-white/5"
+                  className="flex items-center justify-center gap-sm py-sm px-md rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-medium transition-all border border-outline-variant/30"
                 >
-                  <Minimize2 size={18} />
-                  Свернуть в трей
+                  <span className="material-symbols-outlined text-[18px]">minimize</span>
+                  Minimize to Tray
                 </button>
-                
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-sm">
                   <button
                     onClick={onClose}
-                    className="py-3 px-4 rounded-xl bg-transparent hover:bg-white/5 text-white/50 hover:text-white font-medium transition-all"
+                    className="py-sm px-md rounded-xl bg-transparent hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-medium transition-all"
                   >
-                    Отмена
+                    Cancel
                   </button>
                   <button
                     onClick={onQuit}
-                    className="py-3 px-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium transition-all border border-red-500/20"
+                    className="py-sm px-md rounded-xl bg-error/20 hover:bg-error/30 text-error font-medium transition-all border border-error/20"
                   >
-                    Выйти
+                    <span className="material-symbols-outlined text-[16px] align-middle mr-xs">logout</span>
+                    Quit
                   </button>
                 </div>
               </div>
