@@ -7,7 +7,7 @@
 ## 📥 Скачать
 
 Вы можете скачать последнюю стабильную версию AI Assistant здесь:
-👉 **[Скачать AI Assistant v2.1.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases/tag/v2.1.0)**
+👉 **[Скачать AI Assistant v2.1.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases)**
 
 ---
 
