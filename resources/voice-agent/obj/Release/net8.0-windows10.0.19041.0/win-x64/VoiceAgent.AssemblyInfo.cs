@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VoiceAgent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c65e7c4869a992c22735a0219178a86e620d80f7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+86c5132a1384ed7ffaa0952e76e98a246270d5dd")]
 [assembly: System.Reflection.AssemblyProductAttribute("VoiceAgent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VoiceAgent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

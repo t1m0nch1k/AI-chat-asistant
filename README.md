@@ -7,7 +7,7 @@ A powerful, extensible Windows 11 AI Chat Assistant with advanced Agent capabili
 ## 📥 Download
 
 You can download the latest stable version of the AI Assistant here:
-👉 **[Download AI Assistant v2.1.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases/tag/v2.1.0)**
+👉 **[Download AI Assistant v2.1.0](https://github.com/t1m0nch1k/AI-chat-asistant/releases)**
 
 ---
 
